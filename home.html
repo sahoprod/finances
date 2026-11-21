@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Finances">
+<meta name="theme-color" content="#0F0F12">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Finances</title>
+<style>
+  :root {
+    --bg-main: #0F0F12;
+    --bg-panel: #17171C;
+    --bg-input: #1F1F26;
+    --bg-hover: #2A2A33;
+    --fg-main: #E8E8EA;
+    --fg-muted: #8A8A93;
+    --fg-subtle: #5A5A62;
+    --accent: #5E6AD2;
+    --accent-hov: #7B84DB;
+    --green: #4CAF7D;
+    --green-bg: #0E2A1F;
+    --red: #E5534B;
+    --red-bg: #2A1215;
+    --border: #262630;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg-main); color: var(--fg-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    overscroll-behavior: none;
+  }
+  body { display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+  .screen { flex: 1; overflow-y: auto; padding: 24px 20px 100px; -webkit-overflow-scrolling: touch; }
+  h1 { font-size: 28px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.5px; }
+  .subtitle { color: var(--fg-muted); font-size: 13px; margin: 0 0 20px; }
+  .divider { height: 1px; background: var(--border); margin: 16px 0; }
+  .label { font-size: 10px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 6px; }
+  .card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  input, select {
+    width: 100%; background: var(--bg-input); border: 1px solid var(--border);
+    color: var(--fg-main); font-size: 16px; padding: 14px; border-radius: 8px;
+    outline: none; font-family: inherit; appearance: none; -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: var(--accent); }
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+  .seg { display: flex; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; padding: 4px; }
+  .seg button {
+    flex: 1; padding: 12px; border: none; background: transparent; color: var(--fg-muted);
+    font-size: 14px; font-weight: 600; border-radius: 6px; cursor: pointer; font-family: inherit;
+  }
+  .seg button.active[data-type="income"] { background: var(--green); color: #fff; }
+  .seg button.active[data-type="expense"] { background: var(--red); color: #fff; }
+  .btn {
+    width: 100%; padding: 16px; border: none; border-radius: 8px;
+    font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:active { background: var(--accent-hov); }
+  .btn-danger { background: var(--red); color: #fff; margin-top: 10px; }
+  .balance-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
+  .balance-label { font-size: 10px; color: var(--fg-muted); font-weight: 600; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .balance-value { font-size: 32px; font-weight: 600; letter-spacing: -1px; }
+  .mini-stats { display: flex; gap: 10px; margin-bottom: 20px; }
+  .mini-stat { flex: 1; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .mini-stat .lbl { font-size: 9px; color: var(--fg-muted); font-weight: 600; letter-spacing: 0.5px; }
+  .mini-stat .val { font-size: 16px; font-weight: 600; margin-top: 4px; }
+  .mini-stat.income .val { color: var(--green); }
+  .mini-stat.expense .val { color: var(--red); }
+  .list-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 16px; background: var(--bg-panel); border-radius: 10px; margin-bottom: 8px; border-left: 3px solid transparent; }
+  .list-item.income { border-left-color: var(--green); }
+  .list-item.expense { border-left-color: var(--red); }
+  .list-item .info { flex: 1; }
+  .list-item .cat { font-size: 14px; font-weight: 500; }
+  .list-item .meta { font-size: 11px; color: var(--fg-muted); margin-top: 3px; }
+  .list-item .amt { font-size: 15px; font-weight: 600; text-align: right; }
+  .list-item.income .amt { color: var(--green); }
+  .list-item.expense .amt { color: var(--red); }
+  .empty { text-align: center; color: var(--fg-muted); font-size: 14px; padding: 40px 20px; }
+  .tabbar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--bg-panel); border-top: 1px solid var(--border);
+    display: flex; padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  }
+  .tabbar button {
+    flex: 1; background: transparent; border: none; color: var(--fg-muted);
+    font-size: 11px; font-weight: 600; padding: 10px 4px; cursor: pointer;
+    font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .tabbar button.active { color: var(--accent); }
+  .tabbar .icon { font-size: 20px; }
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: var(--bg-hover); color: var(--fg-main); padding: 12px 20px;
+    border-radius: 8px; font-size: 13px; border: 1px solid var(--border);
+    opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 1000;
+  }
+  .toast.show { opacity: 1; }
+  .edit-panel { display: none; margin-top: 16px; }
+  .edit-panel.open { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ЭКРАН: ДОБАВИТЬ -->
+<div class="screen" id="screen-add">
+  <h1>Новая операция</h1>
+  <p class="subtitle">Добавьте доход или расход</p>
+  <div class="divider"></div>
+
+  <div class="label">Тип операции</div>
+  <div class="seg" id="seg-type">
+    <button data-type="expense" class="active" onclick="setType('expense')">Расход</button>
+    <button data-type="income" onclick="setType('income')">Доход</button>
+  </div>
+
+  <div class="label">Дата</div>
+  <input type="date" id="inp-date">
+
+  <div class="label">Сумма</div>
+  <input type="number" id="inp-amount" inputmode="decimal" placeholder="0.00" step="0.01" min="0">
+
+  <div class="label">Категория</div>
+  <select id="inp-category"></select>
+
+  <div class="label">Комментарий</div>
+  <input type="text" id="inp-comment" placeholder="Необязательно">
+
+  <div style="height: 20px"></div>
+  <button class="btn btn-primary" onclick="addRecord()">Сохранить операцию</button>
+</div>
+
+<!-- ЭКРАН: ИСТОРИЯ -->
+<div class="screen" id="screen-history" style="display:none">
+  <h1>История</h1>
+  <p class="subtitle" id="balance-sub">Баланс</p>
+
+  <div class="balance-card">
+    <div class="balance-label">ТЕКУЩИЙ БАЛАНС</div>
+    <div class="balance-value" id="balance-val">0.00 ₽</div>
+  </div>
+
+  <div class="mini-stats">
+    <div class="mini-stat income">
+      <div class="lbl">ДОХОДЫ ЗА МЕСЯЦ</div>
+      <div class="val" id="month-income">+0.00 ₽</div>
+    </div>
+    <div class="mini-stat expense">
+      <div class="lbl">РАСХОДЫ ЗА МЕСЯЦ</div>
+      <div class="val" id="month-expense">−0.00 ₽</div>
+    </div>
+  </div>
+
+  <div class="row">
+    <select id="filter-year" onchange="renderHistory()"></select>
+    <select id="filter-month" onchange="renderHistory()"></select>
+  </div>
+
+  <div style="height: 16px"></div>
+  <div id="list"></div>
+</div>
+
+<!-- ТАББАР -->
+<div class="tabbar">
+  <button id="tab-add" class="active" onclick="showScreen('add')">
+    <span class="icon">＋</span><span>Добавить</span>
+  </button>
+  <button id="tab-history" onclick="showScreen('history')">
+    <span class="icon">☰</span><span>История</span>
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
